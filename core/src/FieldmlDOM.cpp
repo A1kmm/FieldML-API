@@ -41,7 +41,7 @@
 
 #include <cstring>
 #include <cstdio>
-#include <vector>
+#include <list>
 #include <sstream>
 
 #include <libxml/globals.h>
@@ -66,13 +66,13 @@ struct ParseState
 {
     FmlSessionHandle session;
     FieldmlErrorHandler *errorHandler;
-    vector<xmlNodePtr> parseStack;
-    vector<xmlNodePtr> unparsedNodes;
+    std::list<xmlNodePtr> parseStack;
+    std::list<xmlNodePtr> unparsedNodes;
     
     //14102011 CPL Currently, mesh shapes depends on an evaluator which typically depends on mesh-argument which depends on mesh.
     //To work around this cyclic dependency, the shapes attribute is analysed after rest of the document has been parsed.
     //In the long term, shapes will be a bound-type property of a mesh-type domain, so the problem will neatly vanish.
-    vector<pair<FmlObjectHandle,std::string> > shapesHACK;
+    std::list<pair<FmlObjectHandle,std::string> > shapesHACK;
 };
 
 //========================================================================
@@ -203,7 +203,7 @@ FmlObjectHandle getObjectAttribute( xmlNodePtr node, const xmlChar *attribute, P
         return FML_INVALID_HANDLE;
     }
 
-    for( vector<xmlNodePtr>::iterator i = state.unparsedNodes.begin(); i != state.unparsedNodes.end(); i++ )
+    for( std::list<xmlNodePtr>::iterator i = state.unparsedNodes.begin(); i != state.unparsedNodes.end(); i++ )
     {
         const char *nodeObjectName = getStringAttribute( *i, NAME_ATTRIB );
         if( strcmp( objectName, nodeObjectName ) == 0 )
@@ -1426,7 +1426,7 @@ static int parseObjectNode( xmlNodePtr objectNode, ParseState &state )
 
     state.parseStack.pop_back();
 
-    vector<xmlNodePtr>::iterator loc = find( state.unparsedNodes.begin(), state.unparsedNodes.end(), objectNode );
+    std::list<xmlNodePtr>::iterator loc = find( state.unparsedNodes.begin(), state.unparsedNodes.end(), objectNode );
 
     state.unparsedNodes.erase( loc );
 
@@ -1453,7 +1453,7 @@ static int parseDataNode( xmlNodePtr objectNode, ParseState &state )
 
         state.parseStack.pop_back();
 
-        vector<xmlNodePtr>::iterator loc = find( state.unparsedNodes.begin(), state.unparsedNodes.end(), objectNode );
+        std::list<xmlNodePtr>::iterator loc = find( state.unparsedNodes.begin(), state.unparsedNodes.end(), objectNode );
 
         state.unparsedNodes.erase( loc );
 
@@ -1490,10 +1490,12 @@ static int parseDoc( xmlDocPtr doc, ParseState &state )
 
     // To be improved: Required the following "for" loop to loop through all the top level elements and
     // parse the data resources before anything using them.
-    for( vector<xmlNodePtr>::iterator j = state.unparsedNodes.begin(); j != state.unparsedNodes.end();)
+    bool isEnd = state.unparsedNodes.empty();
+    for( std::list<xmlNodePtr>::iterator j = state.unparsedNodes.begin(); !isEnd;)
     {
     	xmlNodePtr temp_node = *j;
     	j++;
+        isEnd = j == state.unparsedNodes.end();
     	parseDataNode( temp_node, state );
     }
 
@@ -1502,7 +1504,7 @@ static int parseDoc( xmlDocPtr doc, ParseState &state )
         parseObjectNode( state.unparsedNodes.back(), state );
     }
     
-    for( vector<pair<FmlObjectHandle,string> >::const_iterator i = state.shapesHACK.begin(); i != state.shapesHACK.end(); i++ )
+    for( std::list<pair<FmlObjectHandle,string> >::const_iterator i = state.shapesHACK.begin(); i != state.shapesHACK.end(); i++ )
     {
         FmlObjectHandle shapesEvaluator = Fieldml_GetObjectByName( state.session, i->second.c_str() );
         if( Fieldml_SetMeshShapes( state.session, i->first, shapesEvaluator ) != FML_ERR_NO_ERROR )
