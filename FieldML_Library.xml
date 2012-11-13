@@ -281,9 +281,83 @@
   <ContinuousType name="parameters.3d.unit.tricubicHermite">
     <Components name="parameters.3d.unit.tricubicHermite.component" count="64"/>
   </ContinuousType>
+
+  <EnsembleType name="parameters.3d.unit.tricubicHermite.derivative.type">
+    <Members>
+      <!-- 0 = no derivative.
+           1 = d/dxi_1
+           2 = d/dxi_2
+           3 = d^2/dxi_1dxi2
+           4 = d/dxi_3
+           5 = d^2/dxi_1dxi_3
+           6 = d^2/dxi_2dxi_3
+           7 = d^3/dxi_1dxi_2dxi_3
+        -->
+      <MemberRange min="0" max="7"/>
+    </Members>
+  </EnsembleType>
   <ArgumentEvaluator name="parameters.3d.unit.tricubicHermite.argument" valueType="parameters.3d.unit.tricubicHermite"/>
   <ArgumentEvaluator name="parameters.3d.unit.tricubicHermite.component.argument" valueType="parameters.3d.unit.tricubicHermite.component"/>
+  <ArgumentEvaluator name="parameters.3d.unit.tricubicHermite.derivative.argument" valueType="parameters.3d.unit.tricubicHermite.derivative.type"/>
   <ArgumentEvaluator name="parameters.3d.unit.tricubicHermiteScaling.argument" valueType="parameters.3d.unit.tricubicHermite"/>
+
+  <DataResource name="parameters.3d.unit.tricubicHermite.toNode.resource">
+    <DataResourceDescription>
+      <DataResourceString>
+        1 1 1 1 1 1 1 1
+        2 2 2 2 2 2 2 2
+        3 3 3 3 3 3 3 3
+        4 4 4 4 4 4 4 4
+        5 5 5 5 5 5 5 5
+        6 6 6 6 6 6 6 6
+        7 7 7 7 7 7 7 7
+        8 8 8 8 8 8 8 8
+      </DataResourceString>
+    </DataResourceDescription>
+    <ArrayDataSource name="parameters.3d.unit.tricubicHermite.toNode.source" rank="1" location="0">
+      <RawArraySize>64</RawArraySize>
+    </ArrayDataSource>
+  </DataResource>
+
+  <DataResource name="parameters.3d.unit.tricubicHermite.toDerivative.resource">
+    <DataResourceDescription>
+      <DataResourceString>
+        0 1 2 3 4 5 6 7
+        0 1 2 3 4 5 6 7
+        0 1 2 3 4 5 6 7
+        0 1 2 3 4 5 6 7
+        0 1 2 3 4 5 6 7
+        0 1 2 3 4 5 6 7
+        0 1 2 3 4 5 6 7
+        0 1 2 3 4 5 6 7
+      </DataResourceString>
+    </DataResourceDescription>
+    <ArrayDataSource name="parameters.3d.unit.tricubicHermite.toDerivative.source" rank="1" location="0">
+      <RawArraySize>64</RawArraySize>
+    </ArrayDataSource>
+  </DataResource>
+
+  <ParameterEvaluator name="parameters.3d.unit.tricubicHermite.component.toNode" valueType="localNodes.3d.cube2x2x2">
+    <Arguments>
+      <Argument name="parameters.3d.unit.tricubicHermite.component.argument"/>
+    </Arguments>
+    <DenseArrayData data="parameters.3d.unit.tricubicHermite.toNode.source">
+      <DenseIndexes>
+        <IndexEvaluator evaluator="parameters.3d.unit.tricubicHermite.component.argument"/>
+      </DenseIndexes>
+    </DenseArrayData>
+  </ParameterEvaluator>
+
+  <ParameterEvaluator name="parameters.3d.unit.tricubicHermite.component.toDerivative" valueType="parameters.3d.unit.tricubicHermite.derivative.type">
+    <Arguments>
+      <Argument name="parameters.3d.unit.tricubicHermite.component.argument"/>
+    </Arguments>
+    <DenseArrayData data="parameters.3d.unit.tricubicHermite.toDerivative.source">
+      <DenseIndexes>
+        <IndexEvaluator evaluator="parameters.3d.unit.tricubicHermite.component.argument"/>
+      </DenseIndexes>
+    </DenseArrayData>
+  </ParameterEvaluator>
 
   <ExternalEvaluator name="interpolator.3d.unit.tricubicHermite" valueType="real.1d">
     <Arguments>
