@@ -115,6 +115,13 @@ FieldmlRegion *FieldmlSession::getRegion( string href, string name )
     return NULL;
 }
 
+FieldmlRegion *FieldmlSession::getRegion(std::string href)
+{
+  for (std::vector<FieldmlRegion*>::iterator i = regions.begin(); i != regions.end(); i++)
+    if ((*i)->getHref() == href)
+      return *i;
+  return NULL;
+}
 
 FieldmlRegion *FieldmlSession::addNewRegion( string href, string name )
 {

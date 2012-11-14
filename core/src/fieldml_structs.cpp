@@ -50,10 +50,11 @@ using namespace std;
 //
 //========================================================================
 
-FieldmlObject::FieldmlObject( const string _name, FieldmlHandleType _type, bool _isVirtual ) :
-    name( _name ),
-    objectType( _type ),
-    isVirtual( _isVirtual )
+FieldmlObject::FieldmlObject( const std::string _name, FieldmlRegion* _region, FieldmlHandleType _type, bool _isVirtual ) :
+  name( _name ),
+  region( _region ),
+  objectType( _type ),
+  isVirtual( _isVirtual )
 {
     intValue = 0;
 }
@@ -64,16 +65,17 @@ FieldmlObject::~FieldmlObject()
 }
 
 
-ElementSequence::ElementSequence( const string _name, FmlObjectHandle _elementType ) :
-    FieldmlObject( _name, FHT_UNKNOWN, false ),
-    elementType( _elementType )
+ElementSequence::ElementSequence( const std::string _name,
+                                  FieldmlRegion* _region, FmlObjectHandle _elementType ) :
+  FieldmlObject( _name, _region, FHT_UNKNOWN, false ),
+  elementType( _elementType )
 {
 }
 
 
-EnsembleType::EnsembleType( const string _name, bool _isComponentEnsemble, bool _isVirtual ) :
-    FieldmlObject( _name, FHT_ENSEMBLE_TYPE, _isVirtual ),
-    isComponentEnsemble( _isComponentEnsemble )
+EnsembleType::EnsembleType( const std::string _name, FieldmlRegion* _region, bool _isComponentEnsemble, bool _isVirtual ) :
+  FieldmlObject( _name, _region, FHT_ENSEMBLE_TYPE, _isVirtual ),
+  isComponentEnsemble( _isComponentEnsemble )
 {
     membersType = FML_ENSEMBLE_MEMBER_UNKNOWN;
     count = 0;
@@ -83,21 +85,21 @@ EnsembleType::EnsembleType( const string _name, bool _isComponentEnsemble, bool 
 }
 
 
-BooleanType::BooleanType( const string _name, bool _isVirtual ) :
-    FieldmlObject( _name, FHT_BOOLEAN_TYPE, _isVirtual )
+BooleanType::BooleanType( const std::string _name, FieldmlRegion* _region, bool _isVirtual ) :
+  FieldmlObject( _name, _region, FHT_BOOLEAN_TYPE, _isVirtual )
 {
 }
 
 
-ContinuousType::ContinuousType( const string _name, bool _isVirtual ) :
-    FieldmlObject( _name, FHT_CONTINUOUS_TYPE, _isVirtual )
+ContinuousType::ContinuousType( const std::string _name, FieldmlRegion* _region, bool _isVirtual ) :
+  FieldmlObject( _name, _region, FHT_CONTINUOUS_TYPE, _isVirtual )
 {
     componentType = FML_INVALID_HANDLE;
 }
 
 
-MeshType::MeshType( const string _name, bool _isVirtual ) :
-    FieldmlObject( _name, FHT_MESH_TYPE, _isVirtual )
+MeshType::MeshType( const std::string _name, FieldmlRegion* _region, bool _isVirtual ) :
+  FieldmlObject( _name, _region, FHT_MESH_TYPE, _isVirtual )
 {
     shapes = FML_INVALID_HANDLE;
     chartType = FML_INVALID_HANDLE;
@@ -105,8 +107,9 @@ MeshType::MeshType( const string _name, bool _isVirtual ) :
 }
 
 
-DataResource::DataResource( const string _name, FieldmlDataResourceType _resourceType, const string _format, const string _description ) : 
-    FieldmlObject( _name, FHT_DATA_RESOURCE, false ),
+DataResource::DataResource( const std::string _name, FieldmlRegion* _region,
+                            FieldmlDataResourceType _resourceType, const string _format, const string _description ) : 
+  FieldmlObject( _name, _region, FHT_DATA_RESOURCE, false ),
     resourceType( _resourceType ),
     format( _format ),
     description( _description )
@@ -455,18 +458,20 @@ DokArrayDataDescription::~DokArrayDataDescription()
 }
 
 
-DataSource::DataSource( const std::string _name, DataResource *_resource, FieldmlDataSourceType _type ) :
-    FieldmlObject( _name, FHT_DATA_SOURCE, false ),
-    resource( _resource ),
-    sourceType( _type )
+DataSource::DataSource( const std::string _name, FieldmlRegion* _region,
+                        DataResource *_resource, FieldmlDataSourceType _type ) :
+  FieldmlObject( _name, _region, FHT_DATA_SOURCE, false ),
+  resource( _resource ),
+  sourceType( _type )
 {
 }
 
 
-ArrayDataSource:: ArrayDataSource( const string _name, DataResource *_resource, const string _location, int _rank ) :
-    DataSource( _name, _resource, FML_DATA_SOURCE_ARRAY ),
-    rank( _rank ),
-    location( _location )
+ArrayDataSource:: ArrayDataSource( const string _name, FieldmlRegion* _region,
+                                   DataResource *_resource, const string _location, int _rank ) :
+  DataSource( _name, _region, _resource, FML_DATA_SOURCE_ARRAY ),
+  rank( _rank ),
+  location( _location )
 {
     rawSizes.assign( rank, 0 );
     sizes.assign( rank, 0 );

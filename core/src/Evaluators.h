@@ -57,7 +57,7 @@ class Evaluator :
 public:
     const FmlObjectHandle valueType;
 
-    Evaluator( const std::string _name, FieldmlHandleType _type, FmlObjectHandle _valueType, bool _isVirtual );
+    Evaluator( const std::string _name, FieldmlRegion* _region, FieldmlHandleType _type, FmlObjectHandle _valueType, bool _isVirtual );
     
     virtual bool addDelegates( std::set<FmlObjectHandle> &delegates ) = 0;
     
@@ -71,7 +71,7 @@ class ConstantEvaluator :
 public:
     const std::string valueString;
     
-    ConstantEvaluator( const std::string _name, const std::string _literal, FmlObjectHandle _valueType );
+    ConstantEvaluator( const std::string _name, FieldmlRegion* _region, const std::string _literal, FmlObjectHandle _valueType );
     
     virtual bool addDelegates( std::set<FmlObjectHandle> &delegates );
     
@@ -87,7 +87,7 @@ public:
 
     SimpleMap<FmlObjectHandle, FmlObjectHandle> binds;
 
-    ReferenceEvaluator( const std::string _name, FmlObjectHandle _evaluator, FmlObjectHandle _valueType, bool _isVirtual );
+    ReferenceEvaluator( const std::string _name, FieldmlRegion* _region, FmlObjectHandle _evaluator, FmlObjectHandle _valueType, bool _isVirtual );
     
     virtual bool addDelegates( std::set<FmlObjectHandle> &delegates );
     
@@ -104,7 +104,7 @@ public:
     SimpleMap<FmlObjectHandle, FmlObjectHandle> binds;
     SimpleMap<FmlEnsembleValue, FmlObjectHandle> evaluators;
     
-    PiecewiseEvaluator( const std::string name, FmlObjectHandle valueType, bool _isVirtual );
+    PiecewiseEvaluator( const std::string name, FieldmlRegion* region, FmlObjectHandle valueType, bool _isVirtual );
     
     virtual bool addDelegates( std::set<FmlObjectHandle> &delegates );
     
@@ -121,7 +121,7 @@ public:
     
     FmlObjectHandle indexEvaluator;
     
-    AggregateEvaluator( const std::string _name, FmlObjectHandle _valueType, bool _isVirtual );
+    AggregateEvaluator( const std::string _name, FieldmlRegion* _region, FmlObjectHandle _valueType, bool _isVirtual );
     
     virtual bool addDelegates( std::set<FmlObjectHandle> &delegates );
     
@@ -135,7 +135,7 @@ class ArgumentEvaluator :
 public:
     std::set<FmlObjectHandle> arguments;
     
-    ArgumentEvaluator( const std::string name, FmlObjectHandle _valueType, bool _isVirtual );
+    ArgumentEvaluator( const std::string name, FieldmlRegion* region, FmlObjectHandle _valueType, bool _isVirtual );
     
     virtual bool addDelegates( std::set<FmlObjectHandle> &delegates );
     
@@ -149,7 +149,7 @@ class ExternalEvaluator :
 public:
     std::set<FmlObjectHandle> arguments;
     
-    ExternalEvaluator( const std::string name, FmlObjectHandle _valueType, bool _isVirtual );
+    ExternalEvaluator( const std::string name, FieldmlRegion* region, FmlObjectHandle _valueType, bool _isVirtual );
     
     virtual bool addDelegates( std::set<FmlObjectHandle> &delegates );
     
@@ -163,7 +163,7 @@ class ParameterEvaluator :
 public:
     BaseDataDescription *dataDescription;
     
-    ParameterEvaluator( const std::string _name, FmlObjectHandle _valueType, bool _isVirtual );
+    ParameterEvaluator( const std::string _name, FieldmlRegion* _region, FmlObjectHandle _valueType, bool _isVirtual );
     
     virtual bool addDelegates( std::set<FmlObjectHandle> &delegates );
     

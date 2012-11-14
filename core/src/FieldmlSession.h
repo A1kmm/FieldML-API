@@ -120,6 +120,7 @@ public:
     FieldmlRegion *addNewRegion( std::string location, std::string name );
     
     FieldmlRegion *getRegion( std::string location, std::string name );
+    FieldmlRegion *getRegion( std::string location );
     
     int getRegionIndex( std::string location, std::string name );
     

@@ -470,6 +470,12 @@ FmlObjectHandle Fieldml_GetObjectByName( FmlSessionHandle handle, const char * n
 FmlObjectHandle Fieldml_GetObjectByDeclaredName( FmlSessionHandle handle, const char * name );
 
 /**
+ * \return A handle to the object with the given declared name which resides in the
+ * import with the given href.
+ */
+FmlObjectHandle Fieldml_GetObjectByDeclaredNameAndHref( FmlSessionHandle handle, const char* name, const char* href );
+
+/**
  * \return 1 if the given object is local, 0 if not, or -1 on error. isDeclaredOnly is true, only objects that have been declared locally will return true.
  * 
  * \note Imported objects are not considered local by this function.
@@ -509,6 +515,12 @@ int Fieldml_CopyObjectName( FmlSessionHandle handle, FmlObjectHandle objectHandl
  */
 char * Fieldml_GetObjectDeclaredName( FmlSessionHandle handle, FmlObjectHandle objectHandle );
 
+/**
+ * \return The given object's declared href. This is the href (URL) of the region
+ * in which the object was declared.
+ * \see Fieldml_GetObjectDeclaredName
+ */
+char * Fieldml_GetObjectDeclaredHref( FmlSessionHandle handle, FmlObjectHandle objectHandle );
 
 /**
  * Copies the given object's declared name into the given buffer.

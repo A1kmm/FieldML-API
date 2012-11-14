@@ -829,6 +829,25 @@ FmlObjectHandle Fieldml_GetObjectByDeclaredName( FmlSessionHandle handle, const 
     return object;
 }
 
+FmlObjectHandle Fieldml_GetObjectByDeclaredNameAndHref(FmlSessionHandle handle, const char* name, const char* href)
+{
+  FieldmlSession* session = FieldmlSession::handleToSession(handle);
+  ERROR_AUTOSTACK(session);
+  
+  if (session == NULL)
+    return FML_INVALID_HANDLE;
+
+  FieldmlRegion* region = session->getRegion(href);
+  if (region == NULL)
+  {
+    session->setError(FML_ERR_INVALID_PARAMETER_3, "Cannot get object by declared name and href. Corresponding href not found in model.");
+    return FML_INVALID_HANDLE;
+  }
+
+  FmlObjectHandle result = region->getNamedObject(name);
+  if (result == FML_INVALID_HANDLE)
+    session->setError(FML_ERR_INVALID_PARAMETER_2, "Cannot get object by declared name and href. The specified name was not found in the region.");
+}
 
 FieldmlHandleType Fieldml_GetObjectType( FmlSessionHandle handle, FmlObjectHandle objectHandle )
 {
@@ -1333,6 +1352,21 @@ char * Fieldml_GetObjectDeclaredName( FmlSessionHandle handle, FmlObjectHandle o
     return cstrCopy( object->name.c_str() );
 }
 
+char*
+Fieldml_GetObjectDeclaredHref(FmlSessionHandle handle, FmlObjectHandle objectHandle)
+{
+  FieldmlSession *session = FieldmlSession::handleToSession(handle);
+  ERROR_AUTOSTACK(session);
+  
+  if (session == NULL)
+    return NULL;
+  
+  FieldmlObject *object = session->objects.getObject(objectHandle);
+  if (object == NULL)
+    return NULL;
+    
+  return cstrCopy(object->region->getName().c_str());
+}
 
 int Fieldml_CopyObjectDeclaredName( FmlSessionHandle handle, FmlObjectHandle objectHandle, char * buffer, int bufferLength )
 {
@@ -1476,14 +1510,14 @@ FmlObjectHandle Fieldml_CreateArgumentEvaluator( FmlSessionHandle handle, const 
         }
         
         //Shouldn't need to check for name-collision, as we already have.
-        ArgumentEvaluator *chartEvaluator = new ArgumentEvaluator( chartName.c_str(), chartType, true );
+        ArgumentEvaluator *chartEvaluator = new ArgumentEvaluator( chartName.c_str(), session->region, chartType, true );
         addObject( session, chartEvaluator );        
         
-        ArgumentEvaluator *elementEvaluator = new ArgumentEvaluator( elementsName.c_str(), elementsType, true );
+        ArgumentEvaluator *elementEvaluator = new ArgumentEvaluator( elementsName.c_str(), session->region, elementsType, true );
         addObject( session, elementEvaluator );        
     }
     
-    ArgumentEvaluator *argumentEvaluator = new ArgumentEvaluator( name, valueType, false );
+    ArgumentEvaluator *argumentEvaluator = new ArgumentEvaluator( name, session->region, valueType, false );
     
     session->setError( FML_ERR_NO_ERROR, "" );
     return addObject( session, argumentEvaluator );
@@ -1516,7 +1550,7 @@ FmlObjectHandle Fieldml_CreateExternalEvaluator( FmlSessionHandle handle, const 
         return FML_INVALID_HANDLE;
     }
         
-    ExternalEvaluator *externalEvaluator = new ExternalEvaluator( name, valueType, false );
+    ExternalEvaluator *externalEvaluator = new ExternalEvaluator( name, session->region, valueType, false );
     
     session->setError( FML_ERR_NO_ERROR, "" );
     return addObject( session, externalEvaluator );
@@ -1549,7 +1583,7 @@ FmlObjectHandle Fieldml_CreateParameterEvaluator( FmlSessionHandle handle, const
         return FML_INVALID_HANDLE;
     }
         
-    ParameterEvaluator *parameterEvaluator = new ParameterEvaluator( name, valueType, false );
+    ParameterEvaluator *parameterEvaluator = new ParameterEvaluator( name, session->region, valueType, false );
     
     session->setError( FML_ERR_NO_ERROR, "" );
     return addObject( session, parameterEvaluator );
@@ -1938,7 +1972,7 @@ FmlObjectHandle Fieldml_CreatePiecewiseEvaluator( FmlSessionHandle handle, const
         return FML_INVALID_HANDLE;
     }
         
-    PiecewiseEvaluator *piecewiseEvaluator = new PiecewiseEvaluator( name, valueType, false );
+    PiecewiseEvaluator *piecewiseEvaluator = new PiecewiseEvaluator( name, session->region, valueType, false );
     
     session->setError( FML_ERR_NO_ERROR, "" );
     return addObject( session, piecewiseEvaluator );
@@ -1971,7 +2005,7 @@ FmlObjectHandle Fieldml_CreateAggregateEvaluator( FmlSessionHandle handle, const
         return FML_INVALID_HANDLE;
     }
         
-    AggregateEvaluator *aggregateEvaluator = new AggregateEvaluator( name, valueType, false );
+    AggregateEvaluator *aggregateEvaluator = new AggregateEvaluator( name, session->region, valueType, false );
     
     session->setError( FML_ERR_NO_ERROR, "" );
     return addObject( session, aggregateEvaluator );
@@ -2201,7 +2235,7 @@ FmlObjectHandle Fieldml_CreateReferenceEvaluator( FmlSessionHandle handle, const
 
     FmlObjectHandle valueType = Fieldml_GetValueType( handle, sourceEvaluator );
 
-    ReferenceEvaluator *referenceEvaluator = new ReferenceEvaluator( name, sourceEvaluator, valueType, false );
+    ReferenceEvaluator *referenceEvaluator = new ReferenceEvaluator( name, session->region, sourceEvaluator, valueType, false );
     
     session->setError( FML_ERR_NO_ERROR, "" );
     return addObject( session, referenceEvaluator );
@@ -2656,7 +2690,7 @@ FmlObjectHandle Fieldml_CreateBooleanType( FmlSessionHandle handle, const char *
         return FML_INVALID_HANDLE;
     }
 
-    BooleanType *booleanType = new BooleanType( name, false );
+    BooleanType *booleanType = new BooleanType( name, session->region, false );
     
     session->setError( FML_ERR_NO_ERROR, "" );
     return addObject( session, booleanType );
@@ -2678,7 +2712,7 @@ FmlObjectHandle Fieldml_CreateContinuousType( FmlSessionHandle handle, const cha
         return FML_INVALID_HANDLE;
     }
 
-    ContinuousType *continuousType = new ContinuousType( name, false );
+    ContinuousType *continuousType = new ContinuousType( name, session->region, false );
     
     session->setError( FML_ERR_NO_ERROR, "" );
     return addObject( session, continuousType );
@@ -2742,7 +2776,7 @@ FmlObjectHandle Fieldml_CreateContinuousTypeComponents( FmlSessionHandle handle,
         trueName = type->name + ( name + 1 );
     }
     
-    EnsembleType *ensembleType = new EnsembleType( trueName, true, false );
+    EnsembleType *ensembleType = new EnsembleType( trueName, session->region, true, false );
     FmlObjectHandle componentHandle = addObject( session, ensembleType );
     Fieldml_SetEnsembleMembersRange( handle, componentHandle, 1, count, 1 );
     
@@ -2767,7 +2801,7 @@ FmlObjectHandle Fieldml_CreateEnsembleType( FmlSessionHandle handle, const char 
         return FML_INVALID_HANDLE;
     }
 
-    EnsembleType *ensembleType = new EnsembleType( name, false, false );
+    EnsembleType *ensembleType = new EnsembleType( name, session->region, false, false );
     
     session->setError( FML_ERR_NO_ERROR, "" );
     return addObject( session, ensembleType );
@@ -2789,7 +2823,7 @@ FmlObjectHandle Fieldml_CreateMeshType( FmlSessionHandle handle, const char * na
         return FML_INVALID_HANDLE;
     }
 
-    MeshType *meshType = new MeshType( name, false );
+    MeshType *meshType = new MeshType( name, session->region, false );
 
     session->setError( FML_ERR_NO_ERROR, "" );
 
@@ -2831,7 +2865,7 @@ FmlObjectHandle Fieldml_CreateMeshElementsType( FmlSessionHandle handle, FmlObje
     
     MeshType *meshType = (MeshType*)object;
 
-    EnsembleType *ensembleType = new EnsembleType( meshType->name + "." + name, false, true );
+    EnsembleType *ensembleType = new EnsembleType( meshType->name + "." + name, session->region, false, true );
     FmlObjectHandle elementsHandle = addObject( session, ensembleType );
     
     meshType->elementsType = elementsHandle;
@@ -2874,7 +2908,7 @@ FmlObjectHandle Fieldml_CreateMeshChartType( FmlSessionHandle handle, FmlObjectH
     
     MeshType *meshType = (MeshType*)object;
 
-    ContinuousType *chartType = new ContinuousType( meshType->name + "." + name, true );
+    ContinuousType *chartType = new ContinuousType( meshType->name + "." + name, session->region, true );
     FmlObjectHandle chartHandle = addObject( session, chartType );
     
     meshType->chartType = chartHandle;
@@ -3272,7 +3306,7 @@ FmlObjectHandle Fieldml_CreateHrefDataResource( FmlSessionHandle handle, const c
         return FML_INVALID_HANDLE;
     }
 
-    DataResource *dataResource = new DataResource( name, FML_DATA_RESOURCE_HREF, format, href );
+    DataResource *dataResource = new DataResource( name, session->region, FML_DATA_RESOURCE_HREF, format, href );
     
     session->setError( FML_ERR_NO_ERROR, "" );
     return addObject( session, dataResource );
@@ -3294,7 +3328,7 @@ FmlObjectHandle Fieldml_CreateInlineDataResource( FmlSessionHandle handle, const
         return FML_INVALID_HANDLE;
     }
 
-    DataResource *dataResource = new DataResource( name, FML_DATA_RESOURCE_INLINE, PLAIN_TEXT_NAME, "" );
+    DataResource *dataResource = new DataResource( name, session->region, FML_DATA_RESOURCE_INLINE, PLAIN_TEXT_NAME, "" );
     session->setError( FML_ERR_NO_ERROR, "" );
     return addObject( session, dataResource );
 }
@@ -3717,8 +3751,8 @@ FmlObjectHandle Fieldml_GetDataSourceResource( FmlSessionHandle handle, FmlObjec
     {
         return FML_ERR_MISCONFIGURED_OBJECT;
     }
-    
-    return session->region->getNamedObject( source->resource->name );
+
+    return source->resource->region->getNamedObject( source->resource->name );
 }
 
 
@@ -4000,7 +4034,7 @@ FmlObjectHandle Fieldml_CreateArrayDataSource( FmlSessionHandle handle, const ch
     
     DataResource *dataResource = getDataResource( session, resourceHandle );
 
-    ArrayDataSource *source = new ArrayDataSource( name, dataResource, location, rank );
+    ArrayDataSource *source = new ArrayDataSource( name, session->region, dataResource, location, rank );
 
     session->setError( FML_ERR_NO_ERROR, "" );
     FmlObjectHandle sourceHandle = addObject( session, source );
@@ -4042,7 +4076,7 @@ int Fieldml_CreateConstantEvaluator( FmlSessionHandle handle, const char * name,
         return FML_INVALID_HANDLE;
     }
 
-    ConstantEvaluator *evaluator = new ConstantEvaluator( name, literal, valueType );
+    ConstantEvaluator *evaluator = new ConstantEvaluator( name, session->region, literal, valueType );
     
     session->setError( FML_ERR_NO_ERROR, "" );
     return addObject( session, evaluator );

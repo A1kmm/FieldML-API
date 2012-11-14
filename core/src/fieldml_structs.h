@@ -50,18 +50,21 @@
 #include "SimpleMap.h"
 #include "SimpleBitset.h"
 
+class FieldmlRegion;
+
 class FieldmlObject
 {
 public:
     const FieldmlHandleType objectType;
     const std::string name;
+    FieldmlRegion* region;
     
     //Virtual objects are either imports, or objects which are strict sub-objects (e.g. component ensembles, mesh element/chart arguments)/
     const bool isVirtual;
 
     int intValue;
     
-    FieldmlObject( const std::string _name, FieldmlHandleType _type, bool _isVirtual );
+    FieldmlObject( const std::string _name, FieldmlRegion* _region, FieldmlHandleType _type, bool _isVirtual );
     
     virtual ~FieldmlObject();
 };
@@ -85,7 +88,7 @@ public:
     
     FmlObjectHandle dataSource;
     
-    EnsembleType( const std::string _name, bool _isComponentEnsemble, bool _isVirtual );
+    EnsembleType( const std::string _name, FieldmlRegion* _region, bool _isComponentEnsemble, bool _isVirtual );
 };
 
 
@@ -97,7 +100,7 @@ public:
 
     SimpleBitset members;
     
-    ElementSequence( const std::string _name, FmlObjectHandle _componentType );
+    ElementSequence( const std::string _name, FieldmlRegion* _region, FmlObjectHandle _componentType );
 };
 
 
@@ -105,7 +108,7 @@ class BooleanType :
     public FieldmlObject
 {
 public:
-    BooleanType( const std::string _name, bool _isVirtual );
+    BooleanType( const std::string _name, FieldmlRegion* _region, bool _isVirtual );
 };
 
 
@@ -115,7 +118,7 @@ class ContinuousType :
 public:
     FmlObjectHandle componentType;
     
-    ContinuousType( const std::string _name, bool _isVirtual );
+    ContinuousType( const std::string _name, FieldmlRegion* _region, bool _isVirtual );
 };
 
 
@@ -127,7 +130,7 @@ public:
     FmlObjectHandle elementsType;
     FmlObjectHandle shapes;
     
-    MeshType( const std::string _name, bool _isVirtual );
+    MeshType( const std::string _name, FieldmlRegion* _region, bool _isVirtual );
 };
 
 
@@ -145,7 +148,7 @@ public:
 
     std::vector<FmlObjectHandle> dataSources;
     
-    DataResource( const std::string _name, FieldmlDataResourceType _type, const std::string _format, const std::string _description );
+    DataResource( const std::string _name, FieldmlRegion* _region, FieldmlDataResourceType _type, const std::string _format, const std::string _description );
         
     virtual ~DataResource();
 };
@@ -155,7 +158,7 @@ class DataSource :
     public FieldmlObject
 {
 protected:
-    DataSource( const std::string _name, DataResource *_resource, FieldmlDataSourceType _type );
+    DataSource( const std::string _name, FieldmlRegion* _region, DataResource *_resource, FieldmlDataSourceType _type );
     
 public:
     const FieldmlDataSourceType sourceType;
@@ -184,7 +187,7 @@ public:
     //NOTE: Optional for formats that internally specify sizes.
     std::vector<int> rawSizes;
     
-    ArrayDataSource( const std::string _name, DataResource *_resource, const std::string _location, int _rank );
+    ArrayDataSource( const std::string _name, FieldmlRegion* _region, DataResource *_resource, const std::string _location, int _rank );
     
     virtual ~ArrayDataSource();
 };

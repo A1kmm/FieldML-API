@@ -75,12 +75,6 @@ FmlIoErrorNumber FieldmlIo_GetLastError()
 
 FmlReaderHandle Fieldml_OpenReader( FmlSessionHandle handle, FmlObjectHandle objectHandle )
 {
-    if( Fieldml_IsObjectLocal( handle, objectHandle, 0 ) != 1 )
-    {
-        FieldmlIoSession::getSession().setError( FML_IOERR_NONLOCAL_OBJECT );
-        return FML_INVALID_HANDLE;
-    }
-
     ArrayDataReader *reader = NULL;
     if( Fieldml_GetDataSourceType( handle, objectHandle ) == FML_DATA_SOURCE_ARRAY )
     {

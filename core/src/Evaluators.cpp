@@ -66,9 +66,9 @@ template <typename T> T *checkedCast(FieldmlSession *session, const FmlObjectHan
 
 } //End namespace EvaluatorsUtil
 
-Evaluator::Evaluator( const string _name, FieldmlHandleType _type, FmlObjectHandle _valueType, bool _isVirtual ) :
-    FieldmlObject( _name, _type, _isVirtual ),
-    valueType( _valueType )
+Evaluator::Evaluator( const std::string _name, FieldmlRegion* _region, FieldmlHandleType _type, FmlObjectHandle _valueType, bool _isVirtual ) :
+  FieldmlObject( _name, _region, _type, _isVirtual ),
+  valueType( _valueType )
 {
 }
 
@@ -96,9 +96,9 @@ Evaluator *Evaluator::checkedCast( FieldmlSession *session, FmlObjectHandle obje
 }
 
 
-ConstantEvaluator::ConstantEvaluator( const string _name, const string _valueString, FmlObjectHandle _valueType ) :
-    Evaluator( _name, FHT_CONSTANT_EVALUATOR, _valueType, false ),
-    valueString( _valueString )
+ConstantEvaluator::ConstantEvaluator( const std::string _name, FieldmlRegion* _region, const string _valueString, FmlObjectHandle _valueType ) :
+  Evaluator( _name, _region, FHT_CONSTANT_EVALUATOR, _valueType, false ),
+  valueString( _valueString )
 {
 }
 
@@ -115,10 +115,14 @@ ConstantEvaluator *ConstantEvaluator::checkedCast( FieldmlSession *session, FmlO
 }
 
 
-ReferenceEvaluator::ReferenceEvaluator( const string _name, FmlObjectHandle _evaluator, FmlObjectHandle _valueType, bool _isVirtual ) :
-    Evaluator( _name, FHT_REFERENCE_EVALUATOR, _valueType, _isVirtual ),
-    sourceEvaluator( _evaluator ),
-    binds( FML_INVALID_HANDLE )
+ReferenceEvaluator::ReferenceEvaluator
+(
+ const std::string _name,
+ FieldmlRegion* _region,
+ FmlObjectHandle _evaluator, FmlObjectHandle _valueType, bool _isVirtual ) :
+  Evaluator( _name, _region, FHT_REFERENCE_EVALUATOR, _valueType, _isVirtual ),
+  sourceEvaluator( _evaluator ),
+  binds( FML_INVALID_HANDLE )
 {
 }
 
@@ -140,8 +144,9 @@ ReferenceEvaluator *ReferenceEvaluator::checkedCast( FieldmlSession *session, Fm
 }
 
 
-ArgumentEvaluator::ArgumentEvaluator( const string _name, FmlObjectHandle _valueType, bool _isVirtual ) :
-    Evaluator( _name, FHT_ARGUMENT_EVALUATOR, _valueType, _isVirtual )
+ArgumentEvaluator::ArgumentEvaluator(const std::string _name, FieldmlRegion* _region,
+                                     FmlObjectHandle _valueType, bool _isVirtual ) :
+  Evaluator( _name, _region, FHT_ARGUMENT_EVALUATOR, _valueType, _isVirtual )
 {
 }
 
@@ -158,8 +163,8 @@ ArgumentEvaluator *ArgumentEvaluator::checkedCast( FieldmlSession *session, FmlO
 }
 
 
-ExternalEvaluator::ExternalEvaluator( const string _name, FmlObjectHandle _valueType, bool _isVirtual ) :
-    Evaluator( _name, FHT_EXTERNAL_EVALUATOR, _valueType, _isVirtual )
+ExternalEvaluator::ExternalEvaluator( const std::string _name, FieldmlRegion* _region, FmlObjectHandle _valueType, bool _isVirtual ) :
+  Evaluator( _name, _region, FHT_EXTERNAL_EVALUATOR, _valueType, _isVirtual )
 {
 }
 
@@ -176,8 +181,8 @@ ExternalEvaluator *ExternalEvaluator::checkedCast( FieldmlSession *session, FmlO
 }
 
 
-ParameterEvaluator::ParameterEvaluator( const string _name, FmlObjectHandle _valueType, bool _isVirtual ) :
-    Evaluator( _name, FHT_PARAMETER_EVALUATOR, _valueType, _isVirtual )
+ParameterEvaluator::ParameterEvaluator( const std::string _name, FieldmlRegion* _region, FmlObjectHandle _valueType, bool _isVirtual ) :
+  Evaluator( _name, _region, FHT_PARAMETER_EVALUATOR, _valueType, _isVirtual )
 {
     dataDescription = new UnknownDataDescription();
 }
@@ -203,11 +208,11 @@ ParameterEvaluator *ParameterEvaluator::checkedCast( FieldmlSession *session, Fm
 }
 
 
-PiecewiseEvaluator::PiecewiseEvaluator( const string _name, FmlObjectHandle _valueType, bool _isVirtual ) :
-    Evaluator( _name, FHT_PIECEWISE_EVALUATOR, _valueType, _isVirtual ),
-    binds( FML_INVALID_HANDLE ),
-    evaluators( FML_INVALID_HANDLE ),
-    indexEvaluator( FML_INVALID_HANDLE )
+PiecewiseEvaluator::PiecewiseEvaluator( const std::string _name, FieldmlRegion* _region, FmlObjectHandle _valueType, bool _isVirtual ) :
+  Evaluator( _name, _region, FHT_PIECEWISE_EVALUATOR, _valueType, _isVirtual ),
+  binds( FML_INVALID_HANDLE ),
+  evaluators( FML_INVALID_HANDLE ),
+  indexEvaluator( FML_INVALID_HANDLE )
 {
 }
 
@@ -232,11 +237,11 @@ PiecewiseEvaluator *PiecewiseEvaluator::checkedCast( FieldmlSession *session, Fm
 }
 
 
-AggregateEvaluator::AggregateEvaluator( const string _name, FmlObjectHandle _valueType, bool _isVirtual ) :
-    Evaluator( _name, FHT_AGGREGATE_EVALUATOR, _valueType, _isVirtual ),
-    binds( FML_INVALID_HANDLE ),
-    evaluators( FML_INVALID_HANDLE ),
-    indexEvaluator( FML_INVALID_HANDLE )
+AggregateEvaluator::AggregateEvaluator( const std::string _name, FieldmlRegion* _region, FmlObjectHandle _valueType, bool _isVirtual ) :
+  Evaluator( _name, _region, FHT_AGGREGATE_EVALUATOR, _valueType, _isVirtual ),
+  binds( FML_INVALID_HANDLE ),
+  evaluators( FML_INVALID_HANDLE ),
+  indexEvaluator( FML_INVALID_HANDLE )
 {
 }
 
