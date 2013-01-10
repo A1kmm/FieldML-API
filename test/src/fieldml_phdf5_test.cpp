@@ -68,7 +68,7 @@ int lowResSize = 11, lowResNumberOfNodes = 1;
 int lowResArraySize = lowResSize * lowResSize * lowResSize;
 int lowResElementSize = (lowResSize - 1) * (lowResSize - 1) * (lowResSize - 1);
 int highResElementSize = (size - 1) * (size - 1) * (size - 1);
-int randomOrdering = 1;
+int randomOrdering = 0;
 
 /* Find the size and offset of the array which will allow the potential to be
  * calculated
@@ -159,9 +159,9 @@ double **readHDF5Potential(int ratioPerNode, int *highResOffset)
 	FmlSessionHandle session = Fieldml_Create( "test", "test" );
 	FmlObjectHandle resource = 0;
 	if (randomOrdering == 0)
-		resource = Fieldml_CreateHrefDataResource( session, "potential.resource2", "PHDF5", "./output/potential.h5" );
+		resource = Fieldml_CreateHrefDataResource( session, "potential.resource2", "PHDF5", "potential.h5" );
 	else
-		resource = Fieldml_CreateHrefDataResource( session, "potential.resource2", "PHDF5", "./output/randomPotential.h5" );
+		resource = Fieldml_CreateHrefDataResource( session, "potential.resource2", "PHDF5", "randomPotential.h5" );
 	FmlObjectHandle sourceD = Fieldml_CreateArrayDataSource( session, "potential.source2_double", resource, "potential", 2 );
 
 	FmlObjectHandle reader = Fieldml_OpenReader( session, sourceD );
@@ -297,7 +297,7 @@ double **reorderPotentialArray(int ratioPerNode, int highResOffset, double **pot
 	/* First read the ordering into an array */
 	FmlSessionHandle session = Fieldml_Create( "test", "test" );
 
-	FmlObjectHandle indexResource = Fieldml_CreateHrefDataResource( session, "index.resource", "PHDF5", "./output/randomIndex.h5" );
+	FmlObjectHandle indexResource = Fieldml_CreateHrefDataResource( session, "index.resource", "PHDF5", "randomIndex.h5" );
 
 	FmlObjectHandle indexSourceD = Fieldml_CreateArrayDataSource( session, "index.source_int", indexResource, "id", 1 );
 
@@ -809,12 +809,12 @@ int writeLowResFieldMLSolution()
    Fieldml_AddArgument( session, cubeDOFsNodeArgumentHandle, nodesArgumentHandle );
 
 	FmlObjectHandle connectivityResource = Fieldml_CreateHrefDataResource( session,
-		"cube.component1.trilinearLagrange.connectivity.resource", "PHDF5", "./output/lowResConnectivity.h5" );
+		"cube.component1.trilinearLagrange.connectivity.resource", "PHDF5", "lowResConnectivity.h5" );
 	FmlObjectHandle sourceConnectivityD = Fieldml_CreateArrayDataSource( session,
 		"cube.component1.trilinearLagrange.connectivity.resource.data", connectivityResource, "1", 2 );
 	int rawSizes[2];
 	rawSizes[0]= lowResElementSize;
-	rawSizes[1]= pow(2, sizeY);
+	rawSizes[1]= (int)pow(2.0, sizeY);
 	Fieldml_SetArrayDataSourceRawSizes( session, sourceConnectivityD, rawSizes );
 	Fieldml_SetArrayDataSourceSizes( session, sourceConnectivityD, rawSizes );
 
@@ -844,7 +844,7 @@ int writeLowResFieldMLSolution()
 	Fieldml_SetDefaultEvaluator( session, cubeTemplatehandle, cubeReferenceHandle );
 
 	FmlObjectHandle nodeResource = Fieldml_CreateHrefDataResource( session,
-		"cube.geometric.dofs.node.resource", "PHDF5", "./output/lowrescoordinates.h5" );
+		"cube.geometric.dofs.node.resource", "PHDF5", "lowrescoordinates.h5" );
 	FmlObjectHandle nodeSourceD = Fieldml_CreateArrayDataSource( session,
 		"cube.geometric.dofs.node.data", nodeResource, "1", 2 );
 	rawSizes[0]= lowResArraySize;
@@ -867,7 +867,7 @@ int writeLowResFieldMLSolution()
 	Fieldml_SetBind(session, cubeGiometricParameters, cubeDOFsNodeArgumentHandle, cubeNodeParameterHandle);
 
 	FmlObjectHandle potentialResource = Fieldml_CreateHrefDataResource( session, "cube.geometric.dofs.activationtime.resource",
-		"PHDF5", "./output/lowresActivationTime.h5" );
+		"PHDF5", "lowresActivationTime.h5" );
 	FmlObjectHandle potentialSourceD = Fieldml_CreateArrayDataSource( session, "cube.geometric.dofs.activationtime.data",
 		potentialResource, "1", 1 );
 	Fieldml_SetArrayDataSourceRawSizes( session, potentialSourceD, &lowResArraySize );
@@ -1012,10 +1012,10 @@ int highResHdf5Write()
 
 	FmlObjectHandle cType = Fieldml_CreateContinuousType( session, "test.scalar_real" );
 
-	FmlObjectHandle resource = Fieldml_CreateHrefDataResource( session, "coordinates.resource", "PHDF5", "./output/coordinates.h5" );
+	FmlObjectHandle resource = Fieldml_CreateHrefDataResource( session, "coordinates.resource", "PHDF5", "coordinates.h5" );
 	FmlObjectHandle sourceD = Fieldml_CreateArrayDataSource( session, "coordinates.source_double", resource, "coordinates", 2 );
 
-	FmlObjectHandle potentialResource = Fieldml_CreateHrefDataResource( session, "potential.resource", "PHDF5", "./output/potential.h5" );
+	FmlObjectHandle potentialResource = Fieldml_CreateHrefDataResource( session, "potential.resource", "PHDF5", "potential.h5" );
 	FmlObjectHandle potentialSourceD = Fieldml_CreateArrayDataSource( session, "potential.source_double", potentialResource, "potential", 2 );
 
 	/* Routine to write the coordinates out using FieldML hdf5 APIs */
@@ -1188,41 +1188,73 @@ int writeRandomHighResIndex(FmlSessionHandle session,
 	return testOk;
 }
 
-/* Write out the data in a random order and this order will also be output into a file */
-int randomHighResHdf5Write(vector<int> &pointsToComputationalNodesList)
-{
-	bool testOk = true;
 
-	printf("random high res HDF5 array write\n");
+/*===========================================================================
+  HDF5_RANDOM_WRITE_TEST
 
-//	int **constructLowResConnectivityArray(int nodesPerElement, int *numberOfElements, int *firstElementNo)
-	int localArraySize = 0;
-	int offset = 0;
-	vector<int> nodesIndex = getLocalNodesIndex(pointsToComputationalNodesList, &localArraySize, &offset);
-	double **localCoordinates = constructLocalCoordinatesArray(nodesIndex, localArraySize);
-	double **potentialArray = constructLocalRandomPotentialArray(localCoordinates, localArraySize);
+  C subroutine that creates a series of randomly placed data points that are
+  written into a HDF5 file
+  ===========================================================================*/
 
-	//int **localCoordinatesArray = constructLocalArray(pointsToComputationalNodesList);
+int HDF5_Random_write_test( vector<int> &pointsToComputationalNodesList ) {
 
-	printf("mpi_size %d, mpi_rank %d array size %d offset %d\n", mpi_size, mpi_rank, localArraySize, offset);
+    bool testOk;
+    int localArraySize, offset, importHandle;
+    double **localCoordinates, **potentialArray;
+    vector<int> nodesIndex;
 
-	FmlSessionHandle session = Fieldml_Create( "test", "test" );
-   int importHandle = Fieldml_AddImportSource( session, "http://www.fieldml.org/resources/xml/0.5/FieldML_Library_0.5.xml", "library" );
-   FmlObjectHandle chart3dArgumentHandle = Fieldml_AddImport( session, importHandle, "chart.3d.argument", "chart.3d.argument" );
-   FmlObjectHandle realType = Fieldml_AddImport( session, importHandle, "real.type", "real.1d" );
-   FmlObjectHandle shapeType = Fieldml_AddImport( session, importHandle, "shape.unit.cube", "shape.unit.cube" );
-   FmlObjectHandle trilinearPointsArgumentHandle = Fieldml_AddImport( session, importHandle,
-   	"trilinearLagrange.points.argument", "parameters.3d.unit.trilinearLagrange.component.argument");
-   FmlObjectHandle trilinearLagrangeParametersHandle = Fieldml_AddImport( session, importHandle,
-   	"trilinearLagrange.parameters", "parameters.3d.unit.trilinearLagrange");
-   FmlObjectHandle trilinearLagrangeParameteArgumentrsHandle = Fieldml_AddImport( session, importHandle,
-   	"trilinearLagrange.parameters.argument", "parameters.3d.unit.trilinearLagrange.argument");
-   FmlObjectHandle trilinearInterpolatorHandle = Fieldml_AddImport( session, importHandle,
-      "trilinearLagrange.interpolator", "interpolator.3d.unit.trilinearLagrange");
-   FmlObjectHandle coordinatesRC3DComponenentHandle = Fieldml_AddImport( session, importHandle,
-      "coordinates.rc.3d.component.argument", "coordinates.rc.3d.component.argument");
-   FmlObjectHandle coordinatesRC3DCHandle = Fieldml_AddImport( session, importHandle,
-         "coordinates.rc.3d", "coordinates.rc.3d");
+    FmlSessionHandle session;
+    FmlObjectHandle realType, shapeType, trilinearPointsArgumentHandle, 
+                    trilinearLagrangeParametersHandle, 
+                    trilinearLagrangeParameteArgumentrsHandle, 
+                    trilinearInterpolatorHandle, chart3dArgumentHandle, 
+                    coordinatesRC3DComponenentHandle, coordinatesRC3DCHandle;
+
+    testOk = true;
+    printf("random high res HDF5 array write\n");
+
+    localArraySize = 0;
+    offset = 0;
+    nodesIndex = getLocalNodesIndex( pointsToComputationalNodesList, 
+                                    &localArraySize, &offset );
+    localCoordinates = constructLocalCoordinatesArray( nodesIndex, 
+                                                       localArraySize );
+    potentialArray = constructLocalRandomPotentialArray( localCoordinates, 
+                                                         localArraySize );
+
+
+    printf("mpi_size %d, mpi_rank %d array size %d offset %d\n", mpi_size, mpi_rank, localArraySize, offset);
+
+    session = Fieldml_Create( "test", "test" );
+    importHandle = Fieldml_AddImportSource( session, 
+                                            "FieldML_Library_0.5.xml", 
+                                            "library" );
+    chart3dArgumentHandle = Fieldml_AddImport( session, importHandle, 
+                                               "chart.3d.argument", 
+                                               "chart.3d.argument" );
+    realType = Fieldml_AddImport( session, importHandle, "real.type", 
+                                  "real.1d" );
+    shapeType = Fieldml_AddImport( session, importHandle, "shape.unit.cube", 
+                                   "shape.unit.cube" );
+    trilinearPointsArgumentHandle = Fieldml_AddImport( session, importHandle, 
+                                         "trilinearLagrange.points.argument", 
+                                         "parameters.3d.unit.trilinearLagrange.component.argument");
+    trilinearLagrangeParametersHandle = Fieldml_AddImport( session, importHandle,
+   	                                 "trilinearLagrange.parameters", 
+                                         "parameters.3d.unit.trilinearLagrange");
+    trilinearLagrangeParameteArgumentrsHandle = Fieldml_AddImport( session, 
+                                                   importHandle,
+   	                                     "trilinearLagrange.parameters.argument", 
+                                             "parameters.3d.unit.trilinearLagrange.argument");
+    trilinearInterpolatorHandle = Fieldml_AddImport( session, importHandle,
+                                               "trilinearLagrange.interpolator", 
+                                       "interpolator.3d.unit.trilinearLagrange");
+    coordinatesRC3DComponenentHandle = Fieldml_AddImport( session, importHandle,
+                                           "coordinates.rc.3d.component.argument", 
+                                           "coordinates.rc.3d.component.argument");
+    coordinatesRC3DCHandle = Fieldml_AddImport( session, importHandle,
+                                                "coordinates.rc.3d",  
+                                                "coordinates.rc.3d");
 
    FmlObjectHandle potentialContinuousHandle = Fieldml_CreateContinuousType( session, "potential.rc.3d" );
    FmlObjectHandle potentialComponentHandle =Fieldml_CreateContinuousTypeComponents(
@@ -1239,7 +1271,6 @@ int randomHighResHdf5Write(vector<int> &pointsToComputationalNodesList)
    FmlObjectHandle meshEnsembleHandle = Fieldml_CreateMeshElementsType( session, cubeMeshHandle, "elements" );
    Fieldml_SetEnsembleMembersRange( session, meshEnsembleHandle, 1, highResElementSize, 1 );
    FmlObjectHandle meshChartHandle = Fieldml_CreateMeshChartType( session, cubeMeshHandle, "chart" );
-   //FmlObjectHandle chartContinuousHandle = Fieldml_CreateContinuousType( FmlSessionHandle handle, const char * name );
    Fieldml_CreateContinuousTypeComponents( session, meshChartHandle, "cube.mesh.chart.component", 3 );
    Fieldml_SetMeshShapes( session, cubeMeshHandle, shapeType );
 
@@ -1249,16 +1280,16 @@ int randomHighResHdf5Write(vector<int> &pointsToComputationalNodesList)
    Fieldml_AddArgument( session, cubeDOFsNodeArgumentHandle, nodesArgumentHandle );
 
 	FmlObjectHandle connectivityResource = Fieldml_CreateHrefDataResource( session,
-		"cube.component1.trilinearLagrange.connectivity.resource", "PHDF5", "./output/highResConnectivity.h5" );
+		"cube.component1.trilinearLagrange.connectivity.resource", "PHDF5", "highResConnectivity.h5" );
 	FmlObjectHandle sourceConnectivityD = Fieldml_CreateArrayDataSource( session,
 		"cube.component1.trilinearLagrange.connectivity.resource.data", connectivityResource, "1", 2 );
 	int rawSizes[2];
 	rawSizes[0]= highResElementSize;
-	rawSizes[1]= pow(2, sizeY);
+	rawSizes[1]= (int)pow(2.0, sizeY);
 	Fieldml_SetArrayDataSourceRawSizes( session, sourceConnectivityD, rawSizes );
 	Fieldml_SetArrayDataSourceSizes( session, sourceConnectivityD, rawSizes );
 
-	FmlObjectHandle indexResource = Fieldml_CreateHrefDataResource( session, "index.resource", "PHDF5", "./output/randomIndex.h5" );
+	FmlObjectHandle indexResource = Fieldml_CreateHrefDataResource( session, "index.resource", "PHDF5", "randomIndex.h5" );
 	FmlObjectHandle indexSourceD = Fieldml_CreateArrayDataSource( session, "index.source_int", indexResource, "id", 1 );
 	Fieldml_SetArrayDataSourceRawSizes( session, indexSourceD, &arraySize );
 	Fieldml_SetArrayDataSourceSizes( session, indexSourceD, &arraySize );
@@ -1289,7 +1320,7 @@ int randomHighResHdf5Write(vector<int> &pointsToComputationalNodesList)
 	Fieldml_SetDefaultEvaluator( session, cubeTemplatehandle, cubeReferenceHandle );
 
 	FmlObjectHandle resource = Fieldml_CreateHrefDataResource(session,
-		"coordinates.resource", "PHDF5", "./output/randomCoordinates.h5" );
+		"coordinates.resource", "PHDF5", "./randomCoordinates.h5" );
 	FmlObjectHandle sourceD = Fieldml_CreateArrayDataSource(session,
 		"coordinates.source_double", resource, "coordinates", 2 );
 	rawSizes[0]= arraySize;
@@ -1313,7 +1344,7 @@ int randomHighResHdf5Write(vector<int> &pointsToComputationalNodesList)
 
 	rawSizes[0]= arraySize;
 	rawSizes[1]= numberOfTimes;
-	FmlObjectHandle potentialResource = Fieldml_CreateHrefDataResource( session, "potential.resource", "PHDF5", "./output/randomPotential.h5" );
+	FmlObjectHandle potentialResource = Fieldml_CreateHrefDataResource( session, "potential.resource", "PHDF5", "./randomPotential.h5" );
 	FmlObjectHandle potentialSourceD = Fieldml_CreateArrayDataSource( session, "potential.source_double", potentialResource, "potential", 2 );
 	Fieldml_SetArrayDataSourceRawSizes( session, potentialSourceD, rawSizes );
 	Fieldml_SetArrayDataSourceSizes( session, potentialSourceD, rawSizes );
@@ -1338,38 +1369,25 @@ int randomHighResHdf5Write(vector<int> &pointsToComputationalNodesList)
 	testOk = testOk && writeRandomHighResIndex(session, myEnsmebleHandle, indexSourceD, &nodesIndex[0], localArraySize, offset);
 	testOk = testOk && writeConnectivity(session, myEnsmebleHandle, sourceConnectivityD,
 		highResElementSize, mpi_size, size);
-	//testOk = testOk && writemHighResConnectivity(session, myEnsmebleHandle, sourceConnectivityD, localArraySize, offset);
 
 	if (mpi_rank == 0)
 		Fieldml_WriteFile( session, "phdf5_random_input.xml" );
 
 	Fieldml_Destroy( session );
 
-	if( testOk )
-	{
-		printf( "randomHighResHdf5Write - ok\n" );
-	}
+	if ( testOk )
+           printf( "HDF5_Random_write_test - ok\n" );
 	else
-	{
-		printf( "randomHighResHdf5Write - failed\n" );
+           printf( "HDF5_Random_write_test - failed\n" );
+
+	if ( localCoordinates ) {
+           for ( int i = 0; i < sizeY; i++ ) { delete[] localCoordinates[i]; } 
+           delete[] localCoordinates;
 	}
 
-	if (localCoordinates)
-	{
-		for ( int i = 0; i < sizeY; i++ )
-		{
-			delete[] localCoordinates[i];
-		}
-		delete[] localCoordinates;
-	}
-
-	if (potentialArray)
-	{
-		for ( int i = 0; i < numberOfTimes; i++ )
-		{
-			delete[] potentialArray[i];
-		}
-		delete[] potentialArray;
+	if ( potentialArray ) {
+           for ( int i = 0; i < numberOfTimes; i++ ) { delete[] potentialArray[i]; }
+           delete[] potentialArray;
 	}
 
 	return 0;
@@ -1378,60 +1396,57 @@ int randomHighResHdf5Write(vector<int> &pointsToComputationalNodesList)
 
 /* this function will generate an array containing the
  * coordinates in high resolution */
-void setUpHighResCoordinates()
-{
-	highResCoordinates = new double*[sizeY];
+void setUpHighResCoordinates() {
 
-	for( int i = 0; i < sizeY ; i++)
-	{
-		highResCoordinates[i] = new double[arraySize];
-	}
+     int x,y,z,j,tmp;
+     double yValue, zValue;
 
-	int j = 0;
-	for (int z = 0; z < size ; z++)
-	{
-		double zValue = (size /(size - 1)) * z;
-		for (int y = 0; y < size ; y++)
-		{
-			double yValue = (size /(size - 1)) * y;
-			for (int x = 0; x < size ; x++)
-			{
-				highResCoordinates[0][j] = (size /(size - 1)) * x;
-				highResCoordinates[1][j] = yValue;
-				highResCoordinates[2][j] = zValue;
-				j++;
-			}
-		}
-	}
+     highResCoordinates = new double*[sizeY];
+     for ( x=0; x<sizeY; x++)
+        highResCoordinates[x] = new double[arraySize];
+
+     tmp = (size /(size - 1));
+
+     j = 0;
+     for ( z=0; z<size ; z++ ) {
+         zValue = tmp * z;
+         for ( y=0; y<size; y++ ) {
+             yValue = tmp * y;
+             for ( x=0; x<size; x++ ) {
+                 highResCoordinates[0][j] = tmp * x;
+                 highResCoordinates[1][j] = yValue;
+                 highResCoordinates[2][j] = zValue;
+                 j++;
+             }
+         }
+     }
 }
 
 /* this function will generate an array containing the
  * coordinates in low resolution */
-void setUplowResCoordinates()
-{
-	lowResCoordinates = new double*[sizeY];
-	for( int i = 0; i < sizeY ; i++)
-	{
-		lowResCoordinates[i] = new double[lowResArraySize];
-	}
+void setUplowResCoordinates() {
 
-	int j = 0;
-	int increment = (size - 1) / (lowResSize - 1);
-	for (int z = 0; z< lowResSize ; z++)
-	{
-		double zValue = increment * z;
-		for (int y = 0; y < lowResSize ; y++)
-		{
-			double yValue = increment * y;
-			for (int x = 0; x < lowResSize ; x++)
-			{
-				lowResCoordinates[0][j] = increment * x;
-				lowResCoordinates[1][j] = yValue;
-				lowResCoordinates[2][j] = zValue;
-				j++;
-			}
-		}
-	}
+     int j, x, y, z, increment;
+     double yValue, zValue;
+
+     lowResCoordinates = new double*[sizeY];
+     for ( x=0; x<sizeY; x++ ) 
+         lowResCoordinates[x] = new double[lowResArraySize];
+
+     j = 0;
+     increment = (size - 1) / (lowResSize - 1);
+     for ( z=0; z<lowResSize; z++ ) { 
+         zValue = increment * z;
+         for ( y=0; y<lowResSize; y++ ) {
+             yValue = increment * y;
+             for ( x=0; x<lowResSize; x++ ) {
+                 lowResCoordinates[0][j] = increment * x;
+                 lowResCoordinates[1][j] = yValue;
+                 lowResCoordinates[2][j] = zValue;
+                 j++;
+             }
+         }
+     }
 }
 
 /* this function will generate an randomised array for writing
@@ -1462,66 +1477,52 @@ vector<int> setUpRandomisedIDArray()
  * and the data will be analyse and written out with a much lower resolution.
  *
  */
-int main( int argc, char **argv )
-{
+int main( int argc, char *argv[] ) {
 
-	double inittime,totaltime;
+    int i;
+    double inittime,totaltime;
 
-	store_argc = argc;
+    MPI_Init( &argc, &argv );
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_size );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_rank );
 
-	store_argv = argv;
+    inittime = MPI_Wtime();
 
-	setUpHighResCoordinates();
+   /*
+    * Setup the coordinate lists
+    *------------------------------------------------------------------------*/
+    setUpHighResCoordinates();
+    setUplowResCoordinates();
+    vector<int> pointsToComputationalNodesList = setUpRandomisedIDArray();
 
-	setUplowResCoordinates();
+    if ( mpi_size>1 ) { lowResNumberOfNodes = mpi_size-1; }
 
-	vector<int> pointsToComputationalNodesList = setUpRandomisedIDArray();
+   /*
+    * Perform a HDF5 write test 
+    *------------------------------------------------------------------------*/
+    if ( randomOrdering )
+       HDF5_Random_write_test( pointsToComputationalNodesList ); 
+    else
+       highResHdf5Write();
 
-	MPI_Init(&store_argc, &store_argv);
+   /*
+    * The program will then read the data and analyse it 
+    *------------------------------------------------------------------------*/
+    writeLowResFieldMLSolution();
 
-	MPI_Comm_size(MPI_COMM_WORLD,&mpi_size);
+    totaltime = MPI_Wtime() - inittime;
+    printf(" Process: %d Communication time : %f seconds\n\n", mpi_rank, totaltime);
 
-	MPI_Comm_rank(MPI_COMM_WORLD,&mpi_rank);
+   /*
+    * Clean-up 
+    *------------------------------------------------------------------------*/
+    for ( i=0; i<sizeY; i++ ) {
+        delete[] highResCoordinates[i];
+        delete[] lowResCoordinates[i];
+    }
 
-	inittime = MPI_Wtime();
-
-	if (mpi_size > 1)
-		lowResNumberOfNodes = mpi_size - 1;
-
-	if (!randomOrdering)
-	{
-		/* if randomOrdering is set to false, this program will write the data out in a known order */
-		highResHdf5Write();
-	}
-	else
-	{
-		/* if randomOrdering is set to true, this program will write the data out in a random order*/
-		randomHighResHdf5Write(pointsToComputationalNodesList);
-	}
-
-	/* the program will then read the data and analyse it */
-	writeLowResFieldMLSolution();
-
-	totaltime = MPI_Wtime() - inittime;
-
-   printf(" Process: %d Communication time : %f seconds\n\n", mpi_rank, totaltime);
-
-	MPI_Finalize();
-
-	for ( int i = 0; i < sizeY; i++ )
-	{
-		delete[] highResCoordinates[i];
-	}
-
-	delete[] highResCoordinates;
-
-	for ( int i = 0; i < sizeY; i++ )
-	{
-		delete[] lowResCoordinates[i];
-	}
-
-	delete[] lowResCoordinates;
-	// testTextWrite();
-
-	return 0;
+    delete[] highResCoordinates;
+    delete[] lowResCoordinates;
+    MPI_Finalize();
+    return 0;
 }

@@ -158,14 +158,18 @@ SimpleTest::SimpleTest( void(*_testFunction)( SimpleTestRecorder &__recorder ), 
 vector<SimpleTest*> SimpleTest::tests;
 
 
-int main( int argc, char **argv )
-{
-    SimpleTestRecorder recorder;
+int main( int argc, char **argv ) {
 
+  /*
+   * Create a SimpleTestRecorder object and reset the test counters
+   *---------------------------------------------------------------------------*/
+    SimpleTestRecorder recorder;
     recorder.reset();
 
+  /*
+   * Cycle through the various tests 
+   *---------------------------------------------------------------------------*/
     cout << "Running tests..." << endl;
-
     for( vector<SimpleTest*>::const_iterator i = SimpleTest::tests.begin(); i != SimpleTest::tests.end(); i++ )
     {
         cout << ( *i )->name << endl;

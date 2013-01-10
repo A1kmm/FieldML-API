@@ -1,0 +1,34 @@
+#######################################################################
+## Architecture and compiler definitions for FieldML for the PGI suite 
+##
+##   Mark Cheeseman, NIWA
+##   January 7, 2013
+#######################################################################
+
+#---------------------------------------------------------------------
+# Compiler Definitions
+#---------------------------------------------------------------------
+
+CXX = pgCC 
+MPICXX = /opt/niwa/mpich2/Linux/PGI/1.5/bin/mpicxx 
+CXXFLAGS = -O3 -g -fastsse 
+MAKE = make
+
+#---------------------------------------------------------------------
+# External Libraries Definitions 
+#---------------------------------------------------------------------
+
+XML2_ROOT =/opt/niwa/xml/Linux/PGI/2.9.0
+XML2_INC = -I$(XML2_ROOT)/include/libxml2
+XML2_LIB = $(XML2_ROOT)/lib/libxml2.a -lpthread
+
+HDF5_ROOT =/opt/niwa/hdf5/Linux/PGI/1.8.10/serial
+HDF5_INC = -I$(HDF5_ROOT)/include
+HDF5_LIB = -L$(HDF5_ROOT)/lib -lhdf5_fortran -lhdf5
+
+PHDF5_ROOT =/opt/niwa/hdf5/Linux/PGI/1.8.10/parallel
+PHDF5_INC = -I$(PHDF5_ROOT)/include
+PHDF5_LIB = -L$(PHDF5_ROOT)/lib -lhdf5_fortran -lhdf5
+
+ZLIB_LIB = /opt/niwa/zlib/Linux/PGI/1.2.7/lib/libz.a 
+

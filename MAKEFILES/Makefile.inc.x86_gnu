@@ -1,0 +1,34 @@
+#######################################################################
+## Architecture and compiler definitions for FieldML 
+##
+##   Mark Cheeseman, NIWA
+##   December 14, 2012
+#######################################################################
+
+#---------------------------------------------------------------------
+# Compiler Definitions
+#---------------------------------------------------------------------
+
+CXX = g++ 
+MPICXX = /home/cheesemanmp/software/openmpi/bin/mpicxx
+CXXFLAGS = -O3 -g -m64 
+MAKE = make
+
+#---------------------------------------------------------------------
+# External Libraries Definitions 
+#---------------------------------------------------------------------
+
+XML2_ROOT =/home/cheesemanmp/software/xml/2.9.0
+XML2_INC = -I$(XML2_ROOT)/include/libxml2
+XML2_LIB = $(XML2_ROOT)/lib/libxml2.a
+
+HDF5_ROOT =/home/cheesemanmp/software/hdf5/serial
+HDF5_INC = -I$(HDF5_ROOT)/include
+HDF5_LIB = -L$(HDF5_ROOT)/lib -lhdf5_fortran -lhdf5
+
+PHDF5_ROOT =/home/cheesemanmp/software/hdf5/parallel
+PHDF5_INC = -I$(PHDF5_ROOT)/include
+PHDF5_LIB = -L$(PHDF5_ROOT)/lib -lhdf5_fortran -lhdf5
+
+ZLIB_LIB = /home/cheesemanmp/software/zlib/lib/libz.a
+
