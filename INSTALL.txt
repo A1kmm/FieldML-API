@@ -1,0 +1,20 @@
+INSTALLING FIELDML
+
+   Mark Cheeseman, NIWA
+   January 17, 2013
+===========================================================
+
+1. Make a symbolic link of the appropriate Makefile include
+   file (or create your own).  There are examples of this
+   file in the /MAKEFILES subdirectory.
+
+      ln -s ./MAKEFILES/Makefile.inc.pwr6_xlf ./Makefile.inc
+
+2. Use the appropriate make command.
+
+      make all -> builds FieldML and FieldML-IO libraries
+                  along with a test pHDF5 application.
+
+The two main libraries will be built in the /LIBS sub-directory.
+The test pHDF5 application binary will be placed in the /bin
+sub-directory.
