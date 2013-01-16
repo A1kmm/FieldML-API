@@ -1,8 +1,12 @@
 #######################################################################
-## Architecture and compiler definitions for FieldML on the IBM Power6
+## Architecture and compiler definitions for FieldML for the FitzRoy 
+## IBM Power6 cluster at NIWA's HPCF.
+##
+## Note that the following modules need to be loaded:
+##    - hdf5/1.8.10
 ##
 ##   Mark Cheeseman, NIWA
-##   January 7, 2013
+##   January 14, 2013
 #######################################################################
 
 #---------------------------------------------------------------------
@@ -10,7 +14,7 @@
 #---------------------------------------------------------------------
 
 CXX = xlC 
-MPICXX = mpcc 
+MPICXX = mpCC 
 CXXFLAGS = -O3 -g -qarch=pwr6 -qtune=pwr6 -qhot 
 MAKE = gmake
 
@@ -20,15 +24,13 @@ MAKE = gmake
 
 XML2_ROOT =/opt/niwa/xml/AIX/2.9.0
 XML2_INC = -I$(XML2_ROOT)/include/libxml2
-XML2_LIB = $(XML2_ROOT)/lib/libxml2.a
+XML2_LIB = $(XML2_ROOT)/lib/libxml2.a -lpthread
 
-HDF5_ROOT =/opt/niwa/hdf5/AIX/1.8.10/serial
-HDF5_INC = -I$(HDF5_ROOT)/include
-HDF5_LIB = -L$(HDF5_ROOT)/lib -lhdf5_fortran -lhdf5
+HDF5_INC = ${NIWA_HDF5_INC} 
+HDF5_LIB = ${NIWA_HDF5_LIBS} 
 
-PHDF5_ROOT =/opt/niwa/hdf5/AIX/1.8.10/parallel
-PHDF5_INC = -I$(PHDF5_ROOT)/include
-PHDF5_LIB = -L$(PHDF5_ROOT)/lib -lhdf5_fortran -lhdf5
+PHDF5_INC = ${NIWA_PHDF5_INC} 
+PHDF5_LIB = ${NIWA_PHDF5_LIBS} -lgpfs 
 
-ZLIB_LIB = /opt/niwa/zlib/AIX/1.2.7/lib/libz.a 
+ZLIB_LIB = 
 

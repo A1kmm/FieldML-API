@@ -51,51 +51,29 @@ using namespace std;
 
 Hdf5ArrayDataWriter *Hdf5ArrayDataWriter::create( FieldmlIoContext *context, const string root, FmlObjectHandle source, FieldmlHandleType handleType, bool append, int *sizes, int rank )
 {
-    Hdf5ArrayDataWriter *writer = NULL;
+    Hdf5ArrayDataWriter *hdf5writer, *writer = NULL;
     
     FmlObjectHandle resource = Fieldml_GetDataSourceResource( context->getSession(), source );
     char *temp_string = Fieldml_GetDataResourceFormat( context->getSession(), resource );
     string format;
 
-    if( !StringUtil::safeString( temp_string, format ) )
-    {
-        context->setError( FML_IOERR_CORE_ERROR );
+ /*
+  * Set the file access property for the HDF5 file.  One can have normal 
+  * serial access (H5P_DEFAULT) or parallel access (set via H5Pset_fapl_mpio).
+  *--------------------------------------------------------------------------*/
+    hid_t accessProperties = H5Pcreate( H5P_FILE_ACCESS );
+    if ( !StringUtil::safeString( temp_string, format ) ) {
+       context->setError( FML_IOERR_CORE_ERROR );
+    } else if( format == StringUtil::PHDF5_NAME ) {
+       H5Pset_fapl_mpio( accessProperties, MPI_COMM_WORLD, MPI_INFO_NULL ); 
     }
-    else if( format == StringUtil::HDF5_NAME )
-    {
-#ifdef FIELDML_HDF5_ARRAY
-        Hdf5ArrayDataWriter *hdf5writer = new Hdf5ArrayDataWriter( context, root, source, handleType, append, sizes, rank, H5P_DEFAULT );
-        if( !hdf5writer->ok )
-        {
-            delete hdf5writer;
-        }
-        else
-        {
-            writer = hdf5writer;
-        }
-#endif //FIELDML_HDF5_ARRAY
-    }
-    else if( format == StringUtil::PHDF5_NAME )
-    {
-#ifdef FIELDML_PHDF5_ARRAY
-        hid_t accessProperties = H5Pcreate( H5P_FILE_ACCESS );
-        if( H5Pset_fapl_mpio( accessProperties, MPI_COMM_WORLD, MPI_INFO_NULL ) >= 0 )
-        {
-            Hdf5ArrayDataWriter *hdf5writer = new Hdf5ArrayDataWriter( context, root, source, handleType, append, sizes, rank, accessProperties );
-            if( !hdf5writer->ok )
-            {
-                delete hdf5writer;
-            }
-            else
-            {
-                writer = hdf5writer;
-            }
-        }
-        H5Pclose( accessProperties );
-#endif //FIELDML_PHDF5_ARRAY
-    }
+
+    hdf5writer = new Hdf5ArrayDataWriter( context, root, source, handleType, append, sizes, rank, accessProperties );
+    if ( !hdf5writer->ok ) { delete hdf5writer; }
+    else { writer = hdf5writer; }
+
+    H5Pclose( accessProperties );
     Fieldml_FreeString(temp_string);
-    
     return writer;
 }
 
@@ -146,7 +124,7 @@ Hdf5ArrayDataWriter::Hdf5ArrayDataWriter( FieldmlIoContext *_context, const stri
             file = H5Fopen( filename.c_str(), H5F_ACC_RDWR, accessProperties );
             if( file < 0 )
             {
-                file = H5Fcreate( filename.c_str(), H5F_ACC_EXCL, H5P_DEFAULT, accessProperties );
+                file = H5Fcreate( filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, accessProperties );
             }
         }
         
@@ -294,79 +272,100 @@ bool Hdf5ArrayDataWriter::initializeWithExistingDataset( int *sizes )
 }
 
 
-FmlIoErrorNumber Hdf5ArrayDataWriter::writeSlab( const int *offsets, const int *sizes, hid_t requiredDatatype, const void *valueBuffer )
-{
-    if( datatype != requiredDatatype )
-    {
+/*=============================================================================
+  WRITE_SLAB
+
+  C++ subroutine that performs a write to a HDF5 file
+  =============================================================================*/
+
+#if defined FIELDML_HDF5_ARRAY 
+
+FmlIoErrorNumber Hdf5ArrayDataWriter::writeSlab( hid_t requiredDatatype,
+                                                 const void *valueBuffer ) {
+     herr_t status;
+
+     if ( datatype != requiredDatatype ) {
         context->setError( FML_IOERR_UNSUPPORTED );
         return -1;
-    }
+     }
 
-    for( int i = 0; i < rank; i++ )
-    {
-        hOffsets[i] = offsets[i];
-        hSizes[i] = sizes[i];
-    }
-    
-    hid_t bufferSpace = H5Screate_simple( rank, hSizes, NULL );
-    
-    herr_t status;
-    status = H5Sselect_hyperslab( dataspace, H5S_SELECT_SET, hOffsets, NULL, hSizes, NULL );
-    
-    hid_t transferProperties = H5P_DEFAULT;
+     status = H5Dwrite( dataset, requiredDatatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, 
+                        valueBuffer );
 
-//    if( collective )
-//    {
-//        transferProperties = H5Pcreate (H5P_DATASET_XFER);
-//        H5Pset_dxpl_mpio(transferProperties, H5FD_MPIO_COLLECTIVE);
-//    }
-    
-    status = H5Dwrite( dataset, requiredDatatype, bufferSpace, dataspace, transferProperties, valueBuffer );
+     if( status >= 0 ) { return FML_IOERR_NO_ERROR; }
+     return context->setError( FML_IOERR_WRITE_ERROR );     
 
-//    H5Pclose( transferProperties );    
-    
-    H5Sclose( bufferSpace );
-    
-    if( status >= 0 )
-    {
-        return FML_IOERR_NO_ERROR;
-    }
-    
-    return context->setError( FML_IOERR_WRITE_ERROR );
 }
 
-
-FmlIoErrorNumber Hdf5ArrayDataWriter::writeIntSlab( const int *offsets, const int *sizes, const int *valueBuffer )
-{
-    if( closed )
-    {
-        return FML_IOERR_RESOURCE_CLOSED;
-    }
-    
-    return writeSlab( offsets, sizes, H5T_NATIVE_INT, valueBuffer );
+FmlIoErrorNumber Hdf5ArrayDataWriter::writeIntSlab( const int *valueBuffer ) {
+     if ( closed ) { return FML_IOERR_RESOURCE_CLOSED; }
+     return writeSlab( H5T_NATIVE_INT, valueBuffer );
 }
 
-
-FmlIoErrorNumber Hdf5ArrayDataWriter::writeDoubleSlab( const int *offsets, const int *sizes, const double *valueBuffer )
-{
-    if( closed )
-    {
-        return FML_IOERR_RESOURCE_CLOSED;
-    }
-
-    return writeSlab( offsets, sizes, H5T_NATIVE_DOUBLE, valueBuffer );
+FmlIoErrorNumber Hdf5ArrayDataWriter::writeDoubleSlab( const double *valueBuffer ) {
+     if ( closed ) { return FML_IOERR_RESOURCE_CLOSED; }
+     return writeSlab( H5T_NATIVE_DOUBLE, valueBuffer );
 }
 
-
-FmlIoErrorNumber Hdf5ArrayDataWriter::writeBooleanSlab( const int *offsets, const int *sizes, const FmlBoolean *valueBuffer )
-{
-    if( closed )
-    {
-        return FML_IOERR_RESOURCE_CLOSED;
-    }
-
-    return writeSlab( offsets, sizes, H5T_NATIVE_INT8, valueBuffer );
+FmlIoErrorNumber Hdf5ArrayDataWriter::writeBooleanSlab( const FmlBoolean *valueBuffer ) {
+     if ( closed ) { return FML_IOERR_RESOURCE_CLOSED; }
+     return writeSlab( H5T_NATIVE_INT8, valueBuffer );
 }
+
+#elif defined FIELDML_PHDF5_ARRAY
+
+FmlIoErrorNumber Hdf5ArrayDataWriter::writeSlab( hid_t requiredDatatype,
+                                                 const int *offsets,
+                                                 const int *sizes,
+                                                 const void *valueBuffer ) {
+     int i;
+     hid_t filespace, memspace, plist;
+     herr_t status;
+
+     if ( datatype != requiredDatatype ) {
+        context->setError( FML_IOERR_UNSUPPORTED );
+        return -1;
+     }
+
+     for ( i=0; i<rank; i++ ) {
+         hOffsets[i] = offsets[i];
+         hSizes[i] = sizes[i];
+     }
+
+     filespace = H5Dget_space( dataset );
+     memspace = H5Screate_simple( rank, hSizes, NULL );
+     H5Sselect_hyperslab( filespace, H5S_SELECT_SET, hOffsets, NULL, hSizes, NULL );
+
+     plist = H5Pcreate( H5P_DATASET_XFER );
+     H5Pset_dxpl_mpio( plist, H5FD_MPIO_COLLECTIVE );
+
+     status = H5Dwrite( dataset, requiredDatatype, memspace, filespace, plist, 
+                        valueBuffer );       
+     H5Sclose( filespace );
+     H5Sclose( memspace );
+     H5Pclose( plist );
+
+     if( status >= 0 ) { return FML_IOERR_NO_ERROR; }
+     return context->setError( FML_IOERR_WRITE_ERROR );
+
+}
+
+FmlIoErrorNumber Hdf5ArrayDataWriter::writeIntSlab( const int *offsets, const int *sizes, const int *valueBuffer ) {
+     if ( closed ) { return FML_IOERR_RESOURCE_CLOSED; }
+     return writeSlab( H5T_NATIVE_INT, offsets, sizes, valueBuffer );
+}
+
+FmlIoErrorNumber Hdf5ArrayDataWriter::writeDoubleSlab( const int *offsets, const int *sizes, const double *valueBuffer ) {
+     if ( closed ) { return FML_IOERR_RESOURCE_CLOSED; }
+     return writeSlab( H5T_NATIVE_DOUBLE, offsets, sizes, valueBuffer );
+}
+
+FmlIoErrorNumber Hdf5ArrayDataWriter::writeBooleanSlab( const int *offsets, const int *sizes, const FmlBoolean *valueBuffer ) {
+     if ( closed ) { return FML_IOERR_RESOURCE_CLOSED; }
+     return writeSlab( H5T_NATIVE_INT8, offsets, sizes, valueBuffer );
+}
+
+#endif
 
 
 FmlIoErrorNumber Hdf5ArrayDataWriter::close()

@@ -69,7 +69,11 @@ private:
     
     bool initializeWithNewDataset( const std::string sourceName, int *sizes, FieldmlHandleType handleType );
 
-    FmlIoErrorNumber writeSlab( const int *offsets, const int *sizes, hid_t requiredDatatype, const void *valueBuffer );
+#if defined FIELDML_HDF5_ARRAY 
+    FmlIoErrorNumber writeSlab( hid_t requiredDatatype, const void *valueBuffer );
+#elif defined FIELDML_PHDF5_ARRAY
+    FmlIoErrorNumber writeSlab( hid_t requiredDatatype, const int *offsets, const int *sizes, const void *valueBuffer );
+#endif
 
 public:
     bool ok;

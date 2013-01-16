@@ -54,28 +54,18 @@ ArrayDataWriter *ArrayDataWriter::create( FieldmlIoContext *context, const strin
     char *temp_string = Fieldml_GetDataResourceFormat( context->getSession(), resource );
     string format;
     
-    if( !StringUtil::safeString( temp_string, format ) )
-    {
+    if( !StringUtil::safeString( temp_string, format ) ) {
         context->setError( FML_IOERR_CORE_ERROR );
     }
-    else if( format == StringUtil::HDF5_NAME )
-    {
-#ifdef FIELDML_HDF5_ARRAY
+#if defined FIELDML_HDF5_ARRAY || defined FIELDML_PHDF5_ARRAY
+    else if( format == StringUtil::HDF5_NAME || format == StringUtil::PHDF5_NAME ) {
         writer = Hdf5ArrayDataWriter::create( context, root, source, handleType, append, sizes, rank );
-#endif //FIELDML_HDF5_ARRAY
     }
-    else if( format == StringUtil::PHDF5_NAME )
-    {
-#ifdef FIELDML_PHDF5_ARRAY
-        writer = Hdf5ArrayDataWriter::create( context, root, source, handleType, append, sizes, rank );
-#endif //FIELDML_PHDF5_ARRAY
-    }
-    else if( format == StringUtil::PLAIN_TEXT_NAME )
-    {
+#endif 
+    else if( format == StringUtil::PLAIN_TEXT_NAME ) {
         writer = TextArrayDataWriter::create( context, root, source, handleType, append, sizes, rank );
     }
-    else
-    {
+    else {
         context->setError( FML_IOERR_UNSUPPORTED );
     }
     Fieldml_FreeString(temp_string);
