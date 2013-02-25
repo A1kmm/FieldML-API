@@ -44,8 +44,11 @@ void decompose_domain( int myID, int num_mpi_tasks ) {
      offset[1] = count[1]*myID;
      remainder = global_arraysize % num_mpi_tasks;
      if ( remainder>0 ) {
-        if ( myID<remainder ) { count[1]++; }
-        else { offset[1] += remainder-1; }
+        if ( myID<remainder ) {
+          count[1]++;
+          offset[1] += myID;
+        }
+        else { offset[1] += remainder; }
      }
 
      low_count[1] = global_lowres_arraysize / num_mpi_tasks;
@@ -53,8 +56,11 @@ void decompose_domain( int myID, int num_mpi_tasks ) {
      low_offset[1] = low_count[1]*myID;
      remainder = global_arraysize % num_mpi_tasks;
      if ( remainder>0 ) {
-        if ( myID<remainder ) { low_count[1]++; }
-        else { low_offset[1] += remainder-1; }
+        if ( myID<remainder ) {
+          low_count[1]++;
+          low_offset[1] += myID;
+        }
+        else { low_offset[1] += remainder; }
      }
      return;
 
@@ -78,7 +84,14 @@ double compute_potential( double x, double y, double z, double t ) {
        z_dist = z - radius;
        distance = sqrt( x_dist*x_dist + y_dist*y_dist + z_dist*z_dist );
        potential = cos(  (1.570796325 * ( distance - (propagation_speed * t)) / radius ) );
+#ifdef CLIP_POTENTIAL_TO_ZERO
        if ( potential<0.0 ) { potential = 0.0; }
+#else
+#ifdef X86_TRAP_ZERO_POTENTIAL
+       if (potential == 0.0)
+         asm("int $0x3");
+#endif
+#endif
        return potential;
 
 }
